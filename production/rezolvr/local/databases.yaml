@@ -62,6 +62,8 @@ needs:
         required: true
       - name: db_name
         required: true
+      - name: db_use_ssl
+        required: true
   - type: environment.secret
     name: databasecredentials
     description: Credentials for accessing the database
