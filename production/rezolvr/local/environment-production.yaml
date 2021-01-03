@@ -13,6 +13,8 @@ provides:
         value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
       - name: db_name
         value: ibmclouddb
+      - name: db_use_ssl
+        value: 'true'
   - type: environment.properties
     name: appEnvProps
     description: Application Properties

@@ -25,7 +25,7 @@ provides:
       - name: db_port
         formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_port.Value}}{{end}}'
       - name: db_name
-        value: postgres
+        value: ibmclouddb
       - name: db_host
         formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
       - name: containerName
