@@ -12,6 +12,8 @@ provides:
         value: postgres
       - name: db_host
         formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
+      - name: db_use_ssl
+        formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_use_ssl.Value}}{{end}}'
       - name: containerName
         formula: '{{.Component.Name}}'
       - name: imageName
@@ -28,6 +30,8 @@ provides:
         value: ibmclouddb
       - name: db_host
         formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
+      - name: db_use_ssl
+        formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_use_ssl.Value}}{{end}}'
       - name: containerName
         formula: '{{.Component.Name}}'
       - name: imageName
