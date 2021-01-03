@@ -36,7 +36,7 @@ node {
     stage('Copy rezolvr files to the production project, in the lib directory') {
         dir("staging") {
             def sourceRepoDir = pwd()
-            sh "cp ${sourceRepoDir}/rezolvr/*.yaml ${deployRepoDir}/production/rezolvr/lib/"
+            sh "cp ${sourceRepoDir}/staging/rezolvr/*.yaml ${deployRepoDir}/production/rezolvr/lib/"
         }
     }
 
