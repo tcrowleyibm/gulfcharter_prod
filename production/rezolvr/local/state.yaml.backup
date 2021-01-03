@@ -19,6 +19,8 @@ environmentVars:
     value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
   - name: db_name
     value: ibmclouddb
+  - name: db_use_ssl
+    value: "true"
   registryProps:
   - name: endpoint
     value: us.icr.io/tcrowley-vpc-ns/
@@ -31,6 +33,11 @@ components:
   - name: welcomeapp
     type: service.web.app
     params:
+    - name: imageName
+      formula: '{{with(index .Needs "service.container.registry:imageRegistry")}}{{.Params.endpoint.Value}}{{end}}{{.Component.Name}}'
+      value: us.icr.io/tcrowley-vpc-ns/welcome
+    - name: image.tag
+      value: latest
     - name: message_endpoint
       value: /message
     - name: reservation_endpoint
@@ -38,15 +45,14 @@ components:
     - name: port
       formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.welcome_port.Value}}{{end}}'
       value: "3000"
-    - name: imageName
-      formula: '{{with(index .Needs "service.container.registry:imageRegistry")}}{{.Params.endpoint.Value}}{{end}}{{.Component.Name}}'
-      value: us.icr.io/tcrowley-vpc-ns/welcome
-    - name: image.tag
-      value: latest
   uses:
   - name: ""
     type: environment
     params:
+    - name: CHARTERS_URL
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.charters_host.Value}}{{end}}{{with(index
+        .Needs "service.web.app:chartersms")}}:{{.Params.port.Value}}{{.Params.charters_endpoint.Value}}{{end}}'
+      value: chartersms-service:3001/charters
     - name: RESERVATIONS_URL
       formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_host.Value}}{{end}}{{with(index
         .Needs "service.web.app:reservationsms")}}:{{.Params.port.Value}}{{.Params.reservations_endpoint.Value}}{{end}}'
@@ -57,23 +63,7 @@ components:
     - name: APP_MSG
       formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.app_message.Value}}{{end}}'
       value: Hello from Rezolvr in Production!
-    - name: CHARTERS_URL
-      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.charters_host.Value}}{{end}}{{with(index
-        .Needs "service.web.app:chartersms")}}:{{.Params.port.Value}}{{.Params.charters_endpoint.Value}}{{end}}'
-      value: chartersms-service:3001/charters
   needs:
-  - name: reservationsms
-    type: service.web.app
-    params:
-    - name: reservations_endpoint
-      value: /reservations
-      required: true
-    - name: port
-      value: "3003"
-      required: true
-    - name: imageName
-      value: us.icr.io/tcrowley-vpc-ns/reservations
-      required: true
   - name: appEnvProps
     type: environment.properties
     params:
@@ -107,6 +97,18 @@ components:
     - name: port
       value: "3001"
       required: true
+  - name: reservationsms
+    type: service.web.app
+    params:
+    - name: reservations_endpoint
+      value: /reservations
+      required: true
+    - name: port
+      value: "3003"
+      required: true
+    - name: imageName
+      value: us.icr.io/tcrowley-vpc-ns/reservations
+      required: true
 - name: dbcredentials
   type: resource.environment
   driver: ""
@@ -115,10 +117,10 @@ components:
   - name: databasecredentials
     type: environment.secret
     params:
-    - name: db_username
-      value: db_username
     - name: db_password
       value: db_password
+    - name: db_username
+      value: db_username
   uses: []
   needs: []
 - name: imageRegistry
@@ -148,6 +150,11 @@ components:
   - name: reservationsdb
     type: service.db.postgres
     params:
+    - name: containerName
+      formula: '{{.Component.Name}}'
+      value: postgresdb
+    - name: imageName
+      value: postgres
     - name: image.tag
       value: latest
     - name: db_port
@@ -158,20 +165,12 @@ components:
     - name: db_host
       formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
       value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
-    - name: containerName
-      formula: '{{.Component.Name}}'
-      value: postgresdb
-    - name: imageName
-      value: postgres
+    - name: db_use_ssl
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_use_ssl.Value}}{{end}}'
+      value: <no value>
   - name: chartersdb
     type: service.db.postgres
     params:
-    - name: db_host
-      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
-      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
-    - name: containerName
-      formula: '{{.Component.Name}}'
-      value: postgresdb
     - name: imageName
       value: postgres
     - name: image.tag
@@ -180,7 +179,16 @@ components:
       formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_port.Value}}{{end}}'
       value: "32390"
     - name: db_name
-      value: postgres
+      value: ibmclouddb
+    - name: db_host
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+    - name: db_use_ssl
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_use_ssl.Value}}{{end}}'
+      value: <no value>
+    - name: containerName
+      formula: '{{.Component.Name}}'
+      value: postgresdb
   uses:
   - name: default
     type: environment
@@ -201,14 +209,14 @@ components:
   - name: dbEnvProps
     type: environment.properties
     params:
-    - name: db_name
-      value: ibmclouddb
-      required: true
     - name: db_port
       value: "32390"
       defaultValue: "5432"
     - name: db_host
       value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+      required: true
+    - name: db_name
+      value: ibmclouddb
       required: true
   - name: databasecredentials
     type: environment.secret
@@ -246,6 +254,9 @@ components:
     - name: DB_HOST
       formula: '{{with(index .Needs "service.db.postgres:chartersdb")}}{{.Params.db_host.Value}}{{end}}'
       value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+    - name: DB_USE_SSL
+      formula: '{{with(index .Needs "service.db.postgres:chartersdb")}}{{.Params.db_use_ssl.Value}}{{end}}'
+      value: <no value>
     - name: MY_PORT
       formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.charters_port.Value}}{{end}}'
       value: "3001"
@@ -254,37 +265,40 @@ components:
       value: "32390"
     - name: DB_NAME
       formula: '{{with(index .Needs "service.db.postgres:chartersdb")}}{{.Params.db_name.Value}}{{end}}'
-      value: postgres
+      value: ibmclouddb
   - name: databasecredentials
     type: secret
     params:
-    - name: DB_PW
-      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_password.Value}}{{end}}'
-      value: db_password
     - name: DB_USER
       formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_username.Value}}{{end}}'
       value: db_username
+    - name: DB_PW
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_password.Value}}{{end}}'
+      value: db_password
   needs:
   - name: chartersdb
     type: service.db.postgres
     params:
+    - name: db_port
+      value: "32390"
+      required: true
     - name: db_name
-      value: postgres
+      value: ibmclouddb
       required: true
     - name: db_host
       value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
       required: true
-    - name: db_port
-      value: "32390"
+    - name: db_use_ssl
+      value: <no value>
       required: true
   - name: appEnvProps
     type: environment.properties
     params:
-    - name: charters_port
-      value: "3001"
-      required: true
     - name: app_message
       value: Hello from Rezolvr in Production!
+      required: true
+    - name: charters_port
+      value: "3001"
       required: true
   - name: imageRegistry
     type: service.container.registry
@@ -295,11 +309,11 @@ components:
   - name: databasecredentials
     type: environment.secret
     params:
-    - name: db_password
-      value: db_password
-      required: true
     - name: db_username
       value: db_username
+      required: true
+    - name: db_password
+      value: db_password
       required: true
 - name: reservations
   type: resource.web.app
@@ -309,6 +323,9 @@ components:
   - name: reservationsms
     type: service.web.app
     params:
+    - name: port
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_port.Value}}{{end}}'
+      value: "3003"
     - name: imageName
       formula: '{{with(index .Needs "service.container.registry:imageRegistry")}}{{.Params.endpoint.Value}}{{end}}{{.Component.Name}}'
       value: us.icr.io/tcrowley-vpc-ns/reservations
@@ -316,13 +333,16 @@ components:
       value: latest
     - name: reservations_endpoint
       value: /reservations
-    - name: port
-      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_port.Value}}{{end}}'
-      value: "3003"
   uses:
   - name: default
     type: environment
     params:
+    - name: DB_USE_SSL
+      formula: '{{with(index .Needs "service.db.postgres:reservationsdb")}}{{.Params.db_use_ssl.Value}}{{end}}'
+      value: <no value>
+    - name: MY_PORT
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_port.Value}}{{end}}'
+      value: "3003"
     - name: DB_PORT
       formula: '{{with(index .Needs "service.db.postgres:reservationsdb")}}{{.Params.db_port.Value}}{{end}}'
       value: "32390"
@@ -332,9 +352,6 @@ components:
     - name: DB_HOST
       formula: '{{with(index .Needs "service.db.postgres:reservationsdb")}}{{.Params.db_host.Value}}{{end}}'
       value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
-    - name: MY_PORT
-      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_port.Value}}{{end}}'
-      value: "3003"
   - name: databasecredentials
     type: secret
     params:
@@ -356,6 +373,9 @@ components:
       required: true
     - name: db_host
       value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+      required: true
+    - name: db_use_ssl
+      value: <no value>
       required: true
   - name: appEnvProps
     type: environment.properties

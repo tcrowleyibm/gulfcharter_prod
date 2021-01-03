@@ -26,7 +26,7 @@ spec:
           - name: DB_PORT
             value: '32390'
           - name: DB_USE_SSL
-            value: '<no value>'
+            value: 'true'
           - name: MY_PORT
             value: '3001'
           - name: DB_PW
