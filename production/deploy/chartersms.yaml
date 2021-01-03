@@ -22,9 +22,11 @@ spec:
           - name: DB_HOST
             value: '1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud'
           - name: DB_NAME
-            value: 'postgres'
+            value: 'ibmclouddb'
           - name: DB_PORT
             value: '32390'
+          - name: DB_USE_SSL
+            value: '<no value>'
           - name: MY_PORT
             value: '3001'
           - name: DB_PW
