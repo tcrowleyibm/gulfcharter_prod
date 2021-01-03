@@ -1,0 +1,72 @@
+name: stagingKubeEnvironment
+type: resource.environment
+driver: kube
+description: Environment variables for the production environment
+provides:
+  - type: environment.properties
+    name: dbEnvProps
+    description: Database properties
+    params:
+      - name: db_port
+        value: 32390
+      - name: db_host
+        value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+      - name: db_name
+        value: ibmclouddb
+  - type: environment.properties
+    name: appEnvProps
+    description: Application Properties
+    params:
+      - name: welcome_port
+        value: 3000
+      - name: charters_port
+        value: 3001
+      - name: charters_host
+        value: chartersms-service
+      - name: reservations_port
+        value: 3003
+      - name: reservations_host
+        value: reservationsms-service
+      - name: app_message
+        value: 'Hello from Rezolvr in Production!'
+  - type: environment.properties
+    name: registryProps
+    description: Staging environment registry properties
+    params:
+      - name: endpoint
+        value: us.icr.io/tcrowley-vpc-ns/
+uses: # This is really ".Platform"
+  - type: platform.settings
+    name: default
+    params:
+      - name: numInstances
+        value: 1
+      - name: imagePullPolicy
+        value: Always
+      - name: serviceType
+        value: NodePort
+  - type: platform.settings
+    name: chartersdb
+    params:
+      - name: isExternal
+        value: true
+  - type: platform.settings
+    name: reservationsdb
+    params:
+      - name: isExternal
+        value: true
+  - type: platform.settings
+    name: chartersms
+    params:
+      - name: nodePort
+        value: 30163
+  - type: platform.settings
+    name: reservationsms
+    params:
+      - name: nodePort
+        value: 30164
+  - type: platform.settings
+    name: welcomeapp
+    params:
+      - name: nodePort
+        value: 30165

@@ -1,0 +1,63 @@
+node {
+    def deployRepoDir = ''
+    def targetEnv = 'production'
+
+    stage('Clone main repo') {
+        cleanWs()
+        sh 'git config --global user.email "someuser@somedomain.co"'
+        sh 'git config --global user.name "Jenkie Jenkins"'
+        sh 'mkdir -p deploy'
+        dir("production") {
+            deployRepoDir = pwd()
+            checkout([$class: 'GitSCM',
+                branches: [[name: '*/main']],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [],
+                submoduleCfg: [],
+                userRemoteConfigs: [[credentialsId: '548c572f-09f7-40ef-8f15-ab014be77052', 
+                                     url: 'https://github.com/tcrowleyibm/gulfcharter_prod.git']]])
+            sh 'git checkout main'
+        }
+    }
+    
+    stage("Clone staging repo") {
+        sh "mkdir -p staging"
+        dir("staging") {
+            checkout([$class: 'GitSCM',
+                branches: [[name: '*/main']],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [],
+                submoduleCfg: [],
+                userRemoteConfigs: [[credentialsId: '548c572f-09f7-40ef-8f15-ab014be77052',
+                                    url: "https://github.com/tcrowleyibm/gulfcharter_stage_perf.git"]]])
+        }
+    }
+    
+    stage('Copy rezolvr files to the production project, in the lib directory') {
+        dir("staging") {
+            def sourceRepoDir = pwd()
+            sh "cp ${sourceRepoDir}/rezolvr/*.yaml ${deployRepoDir}/production/rezolvr/lib/"
+        }
+    }
+
+    stage('Resolve dependencies') {
+        dir("production") {
+        sh 'pwd'
+        sh 'export REZOLVR_PLUGINDIR=/usr/share/rezolvr/plugins/'
+        sh "rezolvr apply -a ./production/rezolvr/local/credentials.yaml -a ./production/rezolvr/local/registry.yaml -a ./production/rezolvr/local/databases.yaml -a ./production/rezolvr/lib/welcome.yaml -a ./production/rezolvr/lib/charters.yaml -a ./production/rezolvr/lib/reservations.yaml -e ./production/rezolvr/local/environment-production.yaml -s ./production/rezolvr/local/state.yaml -o ./production/deploy/"
+        }
+    }
+
+    stage('Push changes back to git') {
+        dir("production") {
+            withCredentials([usernamePassword(credentialsId: '548c572f-09f7-40ef-8f15-ab014be77052',
+                 usernameVariable: 'username',
+                 passwordVariable: 'password')]){
+                sh 'git add .'
+                sh 'git commit -m "Jenkins update to the deployment files"'
+                sh("git push http://$username:$password@github.com/tcrowleyibm/gulfcharter_prod.git")
+            }
+        }
+    }
+
+}
