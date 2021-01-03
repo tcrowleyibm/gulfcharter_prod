@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservations
+spec:
+  selector:
+    matchLabels:
+      app: reservationsms
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: reservationsms
+    spec:
+      containers:
+        - name: reservationsms
+          image: us.icr.io/tcrowley-vpc-ns/reservations
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 3003
+          env:
+          - name: DB_HOST
+            value: '1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud'
+          - name: DB_NAME
+            value: 'postgres'
+          - name: DB_PORT
+            value: '32390'
+          - name: MY_PORT
+            value: '3003'
+          - name: DB_PW
+            valueFrom:
+              secretKeyRef:
+                name: databasecredentials
+                key: db_password
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: databasecredentials
+                key: db_username
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservationsms-service
+  namespace: default
+  labels:
+    app: reservations
+spec:
+  type: NodePort
+  selector:
+    app: reservationsms
+  ports:
+    - protocol: TCP
+      port: 3003
+      targetPort: 3003
+      nodePort: 30164

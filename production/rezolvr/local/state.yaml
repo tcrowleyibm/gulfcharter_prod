@@ -1,0 +1,380 @@
+environmentVars:
+  appEnvProps:
+  - name: welcome_port
+    value: "3000"
+  - name: charters_port
+    value: "3001"
+  - name: charters_host
+    value: chartersms-service
+  - name: reservations_port
+    value: "3003"
+  - name: reservations_host
+    value: reservationsms-service
+  - name: app_message
+    value: Hello from Rezolvr in Production!
+  dbEnvProps:
+  - name: db_port
+    value: "32390"
+  - name: db_host
+    value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+  - name: db_name
+    value: ibmclouddb
+  registryProps:
+  - name: endpoint
+    value: us.icr.io/tcrowley-vpc-ns/
+components:
+- name: welcome
+  type: resource.web.app
+  driver: ""
+  description: Main landing page for the boat tour workload
+  provides:
+  - name: welcomeapp
+    type: service.web.app
+    params:
+    - name: message_endpoint
+      value: /message
+    - name: reservation_endpoint
+      value: /reservation
+    - name: port
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.welcome_port.Value}}{{end}}'
+      value: "3000"
+    - name: imageName
+      formula: '{{with(index .Needs "service.container.registry:imageRegistry")}}{{.Params.endpoint.Value}}{{end}}{{.Component.Name}}'
+      value: us.icr.io/tcrowley-vpc-ns/welcome
+    - name: image.tag
+      value: latest
+  uses:
+  - name: ""
+    type: environment
+    params:
+    - name: RESERVATIONS_URL
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_host.Value}}{{end}}{{with(index
+        .Needs "service.web.app:reservationsms")}}:{{.Params.port.Value}}{{.Params.reservations_endpoint.Value}}{{end}}'
+      value: reservationsms-service:3003/reservations
+    - name: WELCOME_PORT
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.welcome_port.Value}}{{end}}'
+      value: "3000"
+    - name: APP_MSG
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.app_message.Value}}{{end}}'
+      value: Hello from Rezolvr in Production!
+    - name: CHARTERS_URL
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.charters_host.Value}}{{end}}{{with(index
+        .Needs "service.web.app:chartersms")}}:{{.Params.port.Value}}{{.Params.charters_endpoint.Value}}{{end}}'
+      value: chartersms-service:3001/charters
+  needs:
+  - name: reservationsms
+    type: service.web.app
+    params:
+    - name: reservations_endpoint
+      value: /reservations
+      required: true
+    - name: port
+      value: "3003"
+      required: true
+    - name: imageName
+      value: us.icr.io/tcrowley-vpc-ns/reservations
+      required: true
+  - name: appEnvProps
+    type: environment.properties
+    params:
+    - name: app_message
+      value: Hello from Rezolvr in Production!
+      required: true
+    - name: welcome_port
+      value: "3000"
+      required: true
+    - name: charters_host
+      value: chartersms-service
+      required: true
+    - name: reservations_host
+      value: reservationsms-service
+      required: true
+  - name: imageRegistry
+    type: service.container.registry
+    params:
+    - name: endpoint
+      value: us.icr.io/tcrowley-vpc-ns/
+      required: true
+  - name: chartersms
+    type: service.web.app
+    params:
+    - name: imageName
+      value: us.icr.io/tcrowley-vpc-ns/charters
+      required: true
+    - name: charters_endpoint
+      value: /charters
+      required: true
+    - name: port
+      value: "3001"
+      required: true
+- name: dbcredentials
+  type: resource.environment
+  driver: ""
+  description: Credentials for the database
+  provides:
+  - name: databasecredentials
+    type: environment.secret
+    params:
+    - name: db_username
+      value: db_username
+    - name: db_password
+      value: db_password
+  uses: []
+  needs: []
+- name: imageRegistry
+  type: resource.container.registry
+  driver: ""
+  description: Registry for storing and retrieving container images
+  provides:
+  - name: imageRegistry
+    type: service.container.registry
+    params:
+    - name: endpoint
+      formula: '{{with(index .Needs "environment.properties:registryProps")}}{{.Params.endpoint.Value}}{{end}}'
+      value: us.icr.io/tcrowley-vpc-ns/
+  uses: []
+  needs:
+  - name: registryProps
+    type: environment.properties
+    params:
+    - name: endpoint
+      value: us.icr.io/tcrowley-vpc-ns/
+      required: true
+- name: postgresdb
+  type: resource.db.postgres
+  driver: ""
+  description: Database resources for the staging environment
+  provides:
+  - name: reservationsdb
+    type: service.db.postgres
+    params:
+    - name: image.tag
+      value: latest
+    - name: db_port
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_port.Value}}{{end}}'
+      value: "32390"
+    - name: db_name
+      value: postgres
+    - name: db_host
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+    - name: containerName
+      formula: '{{.Component.Name}}'
+      value: postgresdb
+    - name: imageName
+      value: postgres
+  - name: chartersdb
+    type: service.db.postgres
+    params:
+    - name: db_host
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_host.Value}}{{end}}'
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+    - name: containerName
+      formula: '{{.Component.Name}}'
+      value: postgresdb
+    - name: imageName
+      value: postgres
+    - name: image.tag
+      value: latest
+    - name: db_port
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_port.Value}}{{end}}'
+      value: "32390"
+    - name: db_name
+      value: postgres
+  uses:
+  - name: default
+    type: environment
+    params:
+    - name: POSTGRES_DB
+      formula: '{{with(index .Needs "environment.properties:dbEnvProps")}}{{.Params.db_name.Value}}{{end}}'
+      value: ibmclouddb
+  - name: databasecredentials
+    type: secret
+    params:
+    - name: POSTGRES_PASSWORD
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_password.Name}}{{end}}'
+      value: db_password
+    - name: POSTGRES_USER
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_username.Name}}{{end}}'
+      value: db_username
+  needs:
+  - name: dbEnvProps
+    type: environment.properties
+    params:
+    - name: db_name
+      value: ibmclouddb
+      required: true
+    - name: db_port
+      value: "32390"
+      defaultValue: "5432"
+    - name: db_host
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+      required: true
+  - name: databasecredentials
+    type: environment.secret
+    params:
+    - name: db_username
+      value: db_username
+      required: true
+    - name: db_password
+      value: db_password
+      required: true
+- name: charters
+  type: resource.web.app
+  driver: ""
+  description: A collection of charters associated with boat tours
+  provides:
+  - name: chartersms
+    type: service.web.app
+    params:
+    - name: dbtime_endpoint
+      value: /dbtime
+    - name: charters_endpoint
+      value: /charters
+    - name: port
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.charters_port.Value}}{{end}}'
+      value: "3001"
+    - name: imageName
+      formula: '{{with(index .Needs "service.container.registry:imageRegistry")}}{{.Params.endpoint.Value}}{{end}}{{.Component.Name}}'
+      value: us.icr.io/tcrowley-vpc-ns/charters
+    - name: image.tag
+      value: latest
+  uses:
+  - name: default
+    type: environment
+    params:
+    - name: DB_HOST
+      formula: '{{with(index .Needs "service.db.postgres:chartersdb")}}{{.Params.db_host.Value}}{{end}}'
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+    - name: MY_PORT
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.charters_port.Value}}{{end}}'
+      value: "3001"
+    - name: DB_PORT
+      formula: '{{with(index .Needs "service.db.postgres:chartersdb")}}{{.Params.db_port.Value}}{{end}}'
+      value: "32390"
+    - name: DB_NAME
+      formula: '{{with(index .Needs "service.db.postgres:chartersdb")}}{{.Params.db_name.Value}}{{end}}'
+      value: postgres
+  - name: databasecredentials
+    type: secret
+    params:
+    - name: DB_PW
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_password.Value}}{{end}}'
+      value: db_password
+    - name: DB_USER
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_username.Value}}{{end}}'
+      value: db_username
+  needs:
+  - name: chartersdb
+    type: service.db.postgres
+    params:
+    - name: db_name
+      value: postgres
+      required: true
+    - name: db_host
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+      required: true
+    - name: db_port
+      value: "32390"
+      required: true
+  - name: appEnvProps
+    type: environment.properties
+    params:
+    - name: charters_port
+      value: "3001"
+      required: true
+    - name: app_message
+      value: Hello from Rezolvr in Production!
+      required: true
+  - name: imageRegistry
+    type: service.container.registry
+    params:
+    - name: endpoint
+      value: us.icr.io/tcrowley-vpc-ns/
+      required: true
+  - name: databasecredentials
+    type: environment.secret
+    params:
+    - name: db_password
+      value: db_password
+      required: true
+    - name: db_username
+      value: db_username
+      required: true
+- name: reservations
+  type: resource.web.app
+  driver: ""
+  description: A microservice for placing boat tour reservations
+  provides:
+  - name: reservationsms
+    type: service.web.app
+    params:
+    - name: imageName
+      formula: '{{with(index .Needs "service.container.registry:imageRegistry")}}{{.Params.endpoint.Value}}{{end}}{{.Component.Name}}'
+      value: us.icr.io/tcrowley-vpc-ns/reservations
+    - name: image.tag
+      value: latest
+    - name: reservations_endpoint
+      value: /reservations
+    - name: port
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_port.Value}}{{end}}'
+      value: "3003"
+  uses:
+  - name: default
+    type: environment
+    params:
+    - name: DB_PORT
+      formula: '{{with(index .Needs "service.db.postgres:reservationsdb")}}{{.Params.db_port.Value}}{{end}}'
+      value: "32390"
+    - name: DB_NAME
+      formula: '{{with(index .Needs "service.db.postgres:reservationsdb")}}{{.Params.db_name.Value}}{{end}}'
+      value: postgres
+    - name: DB_HOST
+      formula: '{{with(index .Needs "service.db.postgres:reservationsdb")}}{{.Params.db_host.Value}}{{end}}'
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+    - name: MY_PORT
+      formula: '{{with(index .Needs "environment.properties:appEnvProps")}}{{.Params.reservations_port.Value}}{{end}}'
+      value: "3003"
+  - name: databasecredentials
+    type: secret
+    params:
+    - name: DB_USER
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_username.Value}}{{end}}'
+      value: db_username
+    - name: DB_PW
+      formula: '{{with(index .Needs "environment.secret:databasecredentials")}}{{.Params.db_password.Value}}{{end}}'
+      value: db_password
+  needs:
+  - name: reservationsdb
+    type: service.db.postgres
+    params:
+    - name: db_port
+      value: "32390"
+      required: true
+    - name: db_name
+      value: postgres
+      required: true
+    - name: db_host
+      value: 1758ec87-47c1-4bea-b397-75adeaa26611.budepemd0im5pmu4u60g.databases.appdomain.cloud
+      required: true
+  - name: appEnvProps
+    type: environment.properties
+    params:
+    - name: reservations_port
+      value: "3003"
+      required: true
+  - name: imageRegistry
+    type: service.container.registry
+    params:
+    - name: endpoint
+      value: us.icr.io/tcrowley-vpc-ns/
+      required: true
+  - name: databasecredentials
+    type: environment.secret
+    params:
+    - name: db_username
+      value: db_username
+      required: true
+    - name: db_password
+      value: db_password
+      required: true
